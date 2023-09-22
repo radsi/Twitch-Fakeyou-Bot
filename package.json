@@ -1,7 +1,8 @@
 {
   "dependencies": {
-    "audic": "^3.0.1",
     "fakeyou.js": "^1.1.1",
-    "tmi.js": "^1.8.5"
+    "speaker": "^0.5.4",
+    "tmi.js": "^1.8.5",
+    "wav-file-info": "^0.0.10"
   }
 }
