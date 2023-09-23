@@ -8,77 +8,84 @@ const Speaker = require('speaker');
 
 let speaker;
 
-const fyClient = new fakeyou.Client({
-  usernameOrEmail: '---'
+async function playAudio() {
+  try {
+    const audioFilePath = path.join(__dirname, 'file.wav');
+
+    const info = await new Promise((resolve, reject) => {
+      wavFileInfo.infoByFilename(audioFilePath, (err, info) => {
+        if (err) reject(err);
+        else resolve(info);
+      });
+    });
+
+    speaker = new Speaker({
+      channels: info.header.num_channels,
+      bitDepth: info.header.bits_per_sample,
+      sampleRate: info.header.sample_rate
+    });
+
+    fs.createReadStream(audioFilePath).pipe(speaker);
+
+    console.log('Playing audio from', audioFilePath);
+  } catch (error) {
+    console.error('Error playing audio file:', error);
+  }
+}
+
+var fyClient = new fakeyou.Client({
+    usernameOrEmail: '---'
 });
 
 const tClient = new tmi.client({
-  identity: {
-    username: "TWITCH_USERNAME",
-    password: "TWITCH_OAUTH"
-  },
-  channels: [""]
+    identity:{
+        username: "TWITCH_USERNAME",
+        password: "TWITCH_OAUTH"
+    },
+    channels: [""]
 });
 
 tClient.connect();
 
-async function playAudio(audioFilePath, sampleRate, numChannels, bitDepth) {
-  try {
-    speaker = new Speaker({
-      channels: numChannels,
-      bitDepth: bitDepth,
-      sampleRate: sampleRate
-    });
-
-    fs.createReadStream(audioFilePath).pipe(speaker);
-  } catch (error) {
-    console.error('Error playing the audio file:', error);
-  }
-}
-
 tClient.on("chat", async (c, userdata, m, self) => {
-  let message = {
-    content: m.trim(),
-    reply: (msgtoreply) => {
-      tClient.say(c, `@${userdata.username} ${msgtoreply}`);
-    }
-  };
+    let message = {
+        content: m.trim(),
+        reply: (msgtoreply) => {
+            tClient.say(c, `@${userdata.username} ${msgtoreply}`);
+        }
+    };
 
-  if (message.content.startsWith("!tts")) {
-    const args = message.content.split(" ");
-
-    if(args.length >= 2)
+    if(message.content.startsWith("!tts"))
     {
-      if (args[1].trim() === '' || args.slice(2).join(' ').trim() === '')
-      {
-        message.reply("El comando se usa así: !tts <personaje> <mensaje>\nPara poner espacios en el nombre del personaje usa guiones \"(-)\"\nEn la pagina fakeyou.com puedes ver todos los personajes");
-        return;
-      }
-    }else{
-      message.reply("El comando se usa así: !tts <personaje> <mensaje>\nPara poner espacios en el nombre del personaje usa guiones \"(-)\"\nEn la pagina fakeyou.com puedes ver todos los personajes");
-      return;
+        const args = message.content.split(" ");
+
+        if(args.length >= 2)
+        {
+            if (args[1].trim() === '' || args.slice(2).join(' ').trim() === '')
+            {
+                message.reply("The command is used like this: !tts <character> <message>\nTo include spaces in the character name, use hyphens \"(-)\"\nYou can view all characters on fakeyou.com");
+                return;
+            }
+        }else{
+            message.reply("The command is used like this: !tts <character> <message>\nTo include spaces in the character name, use hyphens \"(-)\"\nYou can view all characters on fakeyou.com");
+            return;
+        }
+
+        await fyClient.start();
+        var models = fyClient.searchModel(args[1].replace("-", " "));
+
+        if(models.size >= 1) {
+            var result = await fyClient.makeTTS(models.first(), args.slice(2).join(" "));
+            var file = fs.createWriteStream("file.wav");
+            http.get(result.audioURL().replace("https", "http"), function(response) {
+                response.pipe(file);
+            });
+
+            playAudio();
+        }
+        else
+        {
+            message.reply("That character was not found");
+        }
     }
-
-    await fyClient.start();
-    const modelName = args[1].replace("-", " ");
-    const models = fyClient.searchModel(modelName);
-
-    if (models.size >= 1) {
-      const result = await fyClient.makeTTS(models.first(), args.slice(2).join(" "));
-      const audioFilePath = "file.wav";
-      const sampleRate = result.header.sample_rate;
-      const numChannels = result.header.num_channels;
-      const bitDepth = result.header.bits_per_sample;
-
-      http.get(result.audioURL().replace("https", "http"), (response) => {
-        const file = fs.createWriteStream(audioFilePath);
-        response.pipe(file);
-        response.on('end', () => {
-          playAudio(audioFilePath, sampleRate, numChannels, bitDepth);
-        });
-      });
-    } else {
-      message.reply("Character not found");
-    }
-  }
 });
