@@ -42,7 +42,7 @@ const tClient = new tmi.client({
         username: "TWITCH_USERNAME",
         password: "TWITCH_OAUTH"
     },
-    channels: [""]
+    channels: ["CHANNEL_NAME"]
 });
 
 tClient.connect();
@@ -63,11 +63,11 @@ tClient.on("chat", async (c, userdata, m, self) => {
         {
             if (args[1].trim() === '' || args.slice(2).join(' ').trim() === '')
             {
-                message.reply("The command is used like this: !tts <character> <message>\nTo include spaces in the character name, use hyphens \"(-)\"\nYou can view all characters on fakeyou.com");
+                message.reply("The command is used like this: !tts <character> <message>\nTo include spaces in the character name, use hyphens \"(-)\"\nYou can view all characters on https://fakeyou.com");
                 return;
             }
         }else{
-            message.reply("The command is used like this: !tts <character> <message>\nTo include spaces in the character name, use hyphens \"(-)\"\nYou can view all characters on fakeyou.com");
+            message.reply("The command is used like this: !tts <character> <message>\nTo include spaces in the character name, use hyphens \"(-)\"\nYou can view all characters on https://fakeyou.com");
             return;
         }
 
@@ -85,7 +85,7 @@ tClient.on("chat", async (c, userdata, m, self) => {
         }
         else
         {
-            message.reply("That character was not found");
+            message.reply("Character not found");
         }
     }
 });
