@@ -1,2 +1,2 @@
 # Twitch-Fakeyou-Bot
-A fakeyou bot that works by twitch commands
+A local hoated fakeyou bot that works by twitch commands and rewards
