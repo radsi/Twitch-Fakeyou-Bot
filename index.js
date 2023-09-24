@@ -1,3 +1,4 @@
+require('dotenv').config()
 const tmi = require('tmi.js');
 const fakeyou = require('fakeyou.js');
 const path = require('path');
@@ -8,41 +9,16 @@ const Speaker = require('speaker');
 
 let speaker;
 
-async function playAudio() {
-  try {
-    const audioFilePath = path.join(__dirname, 'file.wav');
-
-    const info = await new Promise((resolve, reject) => {
-      wavFileInfo.infoByFilename(audioFilePath, (err, info) => {
-        if (err) reject(err);
-        else resolve(info);
-      });
-    });
-
-    speaker = new Speaker({
-      channels: info.header.num_channels,
-      bitDepth: info.header.bits_per_sample,
-      sampleRate: info.header.sample_rate
-    });
-
-    fs.createReadStream(audioFilePath).pipe(speaker);
-
-    console.log('Playing audio from', audioFilePath);
-  } catch (error) {
-    console.error('Error playing audio file:', error);
-  }
-}
-
-var fyClient = new fakeyou.Client({
+const fyClient = new fakeyou.Client({
     usernameOrEmail: '---'
 });
 
 const tClient = new tmi.client({
     identity:{
-        username: "TWITCH_USERNAME",
-        password: "TWITCH_OAUTH"
+        username: process.env['TWITCH_USERNAME'],
+        password: process.env['TWITCH_OAUTH']
     },
-    channels: ["CHANNEL_NAME"]
+    channels: [process.env['TWITCH_USERNAME']]
 });
 
 tClient.connect();
@@ -55,7 +31,9 @@ tClient.on("chat", async (c, userdata, m, self) => {
         }
     };
 
-    if(message.content.startsWith("!tts"))
+    if(message.content.startsWith("!help") && process.env['USE_COMMAND'] == "1") return message.reply("The command is used like this: !tts <character> <message>\nTo include spaces in the character name, use hyphens \"(-)\"\nYou can view all characters on https://fakeyou.com");
+
+    if((message.content.startsWith("!tts") && process.env['USE_COMMAND'] == "1") || (userdata["custom-reward-id"] == process.env['REWARD_ID'] && process.env['USE_REWARD'] == "1"))
     {
         const args = message.content.split(" ");
 
@@ -89,3 +67,28 @@ tClient.on("chat", async (c, userdata, m, self) => {
         }
     }
 });
+
+async function playAudio() {
+    try {
+      const audioFilePath = path.join(__dirname, 'file.wav');
+  
+      const info = await new Promise((resolve, reject) => {
+        wavFileInfo.infoByFilename(audioFilePath, (err, info) => {
+          if (err) reject(err);
+          else resolve(info);
+        });
+      });
+  
+      speaker = new Speaker({
+        channels: info.header.num_channels,
+        bitDepth: info.header.bits_per_sample,
+        sampleRate: info.header.sample_rate
+      });
+  
+      fs.createReadStream(audioFilePath).pipe(speaker);
+  
+      console.log('Playing audio from', audioFilePath);
+    } catch (error) {
+      console.error('Error playing audio file:', error);
+    }
+  }
